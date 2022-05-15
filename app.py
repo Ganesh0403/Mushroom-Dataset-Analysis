@@ -15,10 +15,10 @@ from sklearn.preprocessing import LabelEncoder
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import statistics
+import altair as alt
 
-
-st.title('Mushroom Dataset Analysis')
-st.sidebar.title('Mushroom Dataset Analysis')
+st.title('Mushroom Classification Analysis')
+st.sidebar.title('Mushroom Classification Analysis')
 
 st.markdown(
     'This application is used to learn about use of various classifiers on Mushroom dataset')
@@ -106,103 +106,91 @@ classifier.fit(X_train, y_train)
 y_pred = classifier.predict(X_test)
 
 # Visualize
-# st.markdown("Number of cover of each type")
-# if select == "Histogram":
-#     fig = px.bar(cover_count, x='Cover Type',
-#                  y='Values', color='Values', height=500)
-#     st.plotly_chart(fig)
-# elif select == "Pie chart":
-#     fig = px.pie(cover_count, names='Cover Type', values='Values')
-#     st.plotly_chart(fig)
-# else:
-#     pca = PCA(2)
-#     X_projected = pca.fit_transform(X)
-#     x1 = X_projected[:, 0]
-#     x2 = X_projected[:, 1]
-#     plt.figure()
-#     plt.scatter(x1, x2, c=y, alpha=0.8, cmap='viridis')
-#     plt.xlabel("Principal Component 1")
-#     plt.ylabel("Principal Component 2")
-#     plt.colorbar()
-#     st.pyplot()
+if st.sidebar.checkbox('Show Plot', False):
+    "\tBar plot between Classifiers and respective accuracies with default parameters"
+    df = pd.DataFrame({"Classifiers": ["KNN","SVM","Random Forest","Gaussian NB"], "Accuracy (%)": [99,89,78,90]})
+    bar_chart = alt.Chart(df).mark_bar().encode(y="Accuracy (%)", x=alt.X('Classifiers:O', axis=alt.Axis(labelAngle=0)))
+    st.altair_chart(bar_chart,use_container_width=True)
+else:
+    if st.checkbox("ANALYZE DATASET"):
+        if st.sidebar.checkbox("Preview Dataset"):
+            if st.sidebar.button("Head"):
+                st.write(data.head())
+            elif st.sidebar.button("Tail"):
+                st.write(data.tail())
+            else:
+                number = st.sidebar.slider("Select No of Rows", 1, data.shape[0])
+                st.write(data.head(number))
 
-if st.checkbox("ANALYZE DATASET"):
-    if st.sidebar.checkbox("Preview Dataset"):
-        if st.sidebar.button("Head"):
-            st.write(data.head())
-        elif st.sidebar.button("Tail"):
-            st.write(data.tail())
-        else:
-            number = st.sidebar.slider("Select No of Rows", 1, data.shape[0])
-            st.write(data.head(number))
+        # show column names
+        if st.checkbox("Show Column Names"):
+            st.write(data.columns)
 
-    # show column names
-    if st.checkbox("Show Column Names"):
-        st.write(data.columns)
+        # show dimensions
+        if st.checkbox("Show Dimensions"):
+            st.write(data.shape)
 
-    # show dimensions
-    if st.checkbox("Show Dimensions"):
-        st.write(data.shape)
+        # show summary
+        if st.checkbox("Show Summary"):
+            st.write(data.describe())
 
-    # show summary
-    if st.checkbox("Show Summary"):
-        st.write(data.describe())
+        # show missing values
+        if st.checkbox("Show Missing Values"):
+            st.write(data.isna().sum())
 
-    # show missing values
-    if st.checkbox("Show Missing Values"):
-        st.write(data.isna().sum())
+        # Select a column to treat missing values
+        col_option = st.selectbox(
+            "Select Column to treat missing values", data.columns)
 
-    # Select a column to treat missing values
-    col_option = st.selectbox(
-        "Select Column to treat missing values", data.columns)
+        # Specify options to treat missing values
+        missing_values_clear = st.selectbox("Select Missing values treatment method", (
+            "Replace with Mean", "Replace with Median", "Replace with Mode"))
 
-    # Specify options to treat missing values
-    missing_values_clear = st.selectbox("Select Missing values treatment method", (
-        "Replace with Mean", "Replace with Median", "Replace with Mode"))
+        if missing_values_clear == "Replace with Mean":
+            replaced_value = data[col_option].mean()
+            st.write("Mean value of column is :", replaced_value)
+        elif missing_values_clear == "Replace with Median":
+            replaced_value = data[col_option].median()
+            st.write("Median value of column is :", replaced_value)
+        elif missing_values_clear == "Replace with Mode":
+            replaced_value = data[col_option].mode()
+            st.write("Mode value of column is :", replaced_value)
 
-    if missing_values_clear == "Replace with Mean":
-        replaced_value = data[col_option].mean()
-        st.write("Mean value of column is :", replaced_value)
-    elif missing_values_clear == "Replace with Median":
-        replaced_value = data[col_option].median()
-        st.write("Median value of column is :", replaced_value)
-    elif missing_values_clear == "Replace with Mode":
-        replaced_value = data[col_option].mode()
-        st.write("Mode value of column is :", replaced_value)
+        Replace = st.selectbox("Replace values of column?", ("Yes", "No"))
+        if Replace == "Yes":
+            data[col_option] = data[col_option].fillna(replaced_value)
+            st.write("Null values replaced")
+        elif Replace == "No":
+            st.write("No changes made")
 
-    Replace = st.selectbox("Replace values of column?", ("Yes", "No"))
-    if Replace == "Yes":
-        data[col_option] = data[col_option].fillna(replaced_value)
-        st.write("Null values replaced")
-    elif Replace == "No":
-        st.write("No changes made")
+        # To change datatype of a column in a dataframe
+        # display datatypes of all columns
+        if st.checkbox("Show datatypes of the columns"):
+            st.write(data.dtypes.astype(str))
 
-    # To change datatype of a column in a dataframe
-    # display datatypes of all columns
-    if st.checkbox("Show datatypes of the columns"):
-        st.write(data.dtypes.astype(str))
+        # visualization
+        # scatter plot
+        col1 = st.selectbox('Which feature on x?', data.columns)
+        col2 = st.selectbox('Which feature on y?', data.columns)
+        fig = px.scatter(data, x=col1, y=col2)
+        st.plotly_chart(fig)
 
-    # visualization
-    # scatter plot
-    col1 = st.selectbox('Which feature on x?', data.columns)
-    col2 = st.selectbox('Which feature on y?', data.columns)
-    fig = px.scatter(data, x=col1, y=col2)
-    st.plotly_chart(fig)
+        # correlartion plots
+        if st.checkbox("Show Correlation plots with Seaborn"):
+            st.set_option('deprecation.showPyplotGlobalUse', False)
+            st.write(sns.heatmap(data.corr()))
+            st.pyplot()
 
-    # correlartion plots
-    if st.checkbox("Show Correlation plots with Seaborn"):
-        st.set_option('deprecation.showPyplotGlobalUse', False)
-        st.write(sns.heatmap(data.corr()))
-        st.pyplot()
-
-if st.sidebar.checkbox('Show Raw Data', False):
-    st.write(data)
+    if st.sidebar.checkbox('Show Raw Data', False):
+        st.write(data)
 
 
-# output
-# if st.checkbox('OUTPUT ANALYSIS', False):
-accuracy = accuracy_score(y_test, y_pred)
-st.write(f"Classifier = {classifier_name}")
-st.write(f"Accuracy = {accuracy}")
-cm_XG = confusion_matrix(y_test, y_pred)
-st.write('Confusion matrix: ', cm_XG)
+
+
+    # output
+    # if st.checkbox('OUTPUT ANALYSIS', False):
+    accuracy = accuracy_score(y_test, y_pred)
+    st.write(f"Classifier = {classifier_name}")
+    st.write(f"Accuracy = {accuracy}")
+    cm_XG = confusion_matrix(y_test, y_pred)
+    st.write('Confusion matrix: ', cm_XG)
